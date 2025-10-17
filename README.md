@@ -1,346 +1,146 @@
-# Assignment: Amazon Athena Reddit Comments Analysis
+# Amazon Athena-Based Large Scale Online Review Analytics System
 
-## Overview
+-- Large-Scale Reddit Comment Analysis with Amazon Athena & AWS Glue
 
-In this assignment, you will analyze Reddit comments data using Amazon Athena, a serverless, interactive analytics service. Amazon Athena allows you to analyze petabytes of data where it lives using standard SQL without managing any infrastructure. You will work with Reddit comments from June 2023 to understand patterns in community discussions.
-
-## Learning Objectives
-
-By completing this assignment, you will:
-
-1. Set up Amazon Athena to query data stored in S3
-2. Create and configure an AWS Glue Data Catalog for Reddit comments data
-3. Execute complex SQL queries on large datasets using Amazon Athena
-4. Analyze Reddit comment patterns to extract meaningful insights
-5. Generate CSV reports from query results
-
-## Prerequisites
-
-### AWS Environment:
-- AWS account with access to Amazon Athena, S3, and AWS Glue
-- IAM permissions for creating S3 buckets and running Glue crawlers
-
-### Development Environment:
-- Amazon EC2 instance (t3.medium or larger recommended)
-- VSCode with Remote-SSH extension
-- Python 3.10 or higher
-- AWS CLI configured with credentials
-
-### Python Environment:
-- `uv` package manager for dependency management
-- Python 3.10 or higher
-
-### Install uv:
-- **macOS/Linux:** `curl -LsSf https://astral.sh/uv/install.sh | sh`
-- **Windows:** `powershell -c "irm https://astral.sh/uv/install.ps1 | iex"`
-
-### Required Python Packages:
-- boto3 (AWS SDK for Python)
-- pandas (Data manipulation)
-- ipykernel (Jupyter kernel)
-- jupyter (Notebook interface)
-
-## Environment Setup
-
-### 1. Amazon EC2 Instance Setup:
-1. Launch an EC2 instance (t3.medium or larger)
-2. Configure security group for SSH access
-3. Connect using VSCode Remote-SSH extension
-
-### 2. Python Environment Setup:
-```bash
-# Install uv if not already installed
-curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# Clone the assignment repository
-git clone <your-repo-url>
-cd assignment-athena
-
-# Create virtual environment and install dependencies
-uv sync
-
-# Activate the virtual environment
-source .venv/bin/activate
-```
-
-### 3. Jupyter Setup:
-```bash
-# Install Jupyter kernel for the virtual environment
-uv pip install ipykernel
-python -m ipykernel install --user --name=assignment-athena
-```
-
-**Important:** When opening the notebook file in Jupyter or VSCode, make sure to select the `assignment-athena` kernel that you just created.
-
-## Getting the Data for This Assignment
-
-### Data Preparation:
-
-From your EC2 instance terminal, run the following commands to copy the Reddit Comments Dataset into your S3 bucket.
-
-**Important:** Replace `<your-net-id>` with your actual net id (e.g., for net id aa1603, the bucket name will be `athena-aa1603`).
-
-```bash
-# Set your net ID (replace <your-net-id> with your actual net id)
-NETID=<your-net-id>
-BUCKET=athena-$NETID
-
-# Create a new S3 bucket
-aws s3 mb s3://$BUCKET
-
-# Verify that the bucket is created
-aws s3 ls s3://$BUCKET/
-
-# Download Reddit comments data for June 2023 (10 files)
-# Use a loop to download, upload, and clean up 10 files
-for i in {1..10}; do
-    echo "Processing file $i of 10..."
-
-    # Download the file locally with request-payer option
-    aws s3 cp s3://dsan6000-datasets/reddit/parquet/comments/yyyy=2023/mm=06/comments_RC_2023-06.zst_${i}.parquet ./comments_RC_2023-06.zst_${i}.parquet --request-payer
-
-    # Upload to your account-specific bucket
-    aws s3 cp ./comments_RC_2023-06.zst_${i}.parquet s3://$BUCKET/data/a05/
-
-    # Delete the local file to save space
-    rm ./comments_RC_2023-06.zst_${i}.parquet
-done
-
-# Verify all files are uploaded
-aws s3 ls s3://$BUCKET/data/a05/
-```
-
-**Expected Output:**
-```
-2024-09-20 13:51:29   [file-size] comments_RC_2023-06.zst_1.parquet
-2024-09-20 13:51:31   [file-size] comments_RC_2023-06.zst_2.parquet
-2024-09-20 13:51:33   [file-size] comments_RC_2023-06.zst_3.parquet
-2024-09-20 13:51:35   [file-size] comments_RC_2023-06.zst_4.parquet
-2024-09-20 13:51:37   [file-size] comments_RC_2023-06.zst_5.parquet
-2024-09-20 13:51:39   [file-size] comments_RC_2023-06.zst_6.parquet
-2024-09-20 13:51:41   [file-size] comments_RC_2023-06.zst_7.parquet
-2024-09-20 13:51:43   [file-size] comments_RC_2023-06.zst_8.parquet
-2024-09-20 13:51:45   [file-size] comments_RC_2023-06.zst_9.parquet
-2024-09-20 13:51:47   [file-size] comments_RC_2023-06.zst_10.parquet
-```
-
-## Setting up Amazon Athena & Glue
-
-Follow the same Athena and Glue setup instructions as you did in the lab to setup a Glue crawler and create a table that you can query using Athena. A few important points to note:
-
-1. **Database Name:** Name the database as `a05`. The table name would automatically be `a05` since we ingested the data in `s3://$BUCKET/data/a05/`.
-
-2. **Data Source:** Point your Glue crawler to `s3://$BUCKET/data/a05/` where you uploaded the Reddit comments parquet file.
-
-3. **Setup Steps:** Follow the exact same steps as shown in the Athena lab for:
-   - Creating AWS Glue Data Catalog
-   - Setting up Glue crawler with IAM role (LabRole)
-   - Running the crawler to discover the schema
-   - Configuring Athena query result location
-
-### Verification Step
-
-Once Athena is setup, run the following query to confirm that you have setup everything correctly:
-
-```sql
-SELECT count(*) from "AwsDataCatalog"."a05"."a05";
-```
-
-If everything is setup correctly, you should be able to run this query in the Athena console and see the total count of rows in the Reddit comments table.
-
-Once the above query works, you are ready to solve the problems in this assignment.
-
-### What to submit
-
-You can use the notebook included in the lab as started code for this assignment. Submit the notebook as **`athena.ipynb`**. This should include code for both the problems listed below.
-
-Besides the notebook also submit the following csv files:
-- `prob1_results.csv`
-- `prob2_results.csv`
-- `prob3_results.csv`
-- `prob4_results.csv`
-- `prob5_results.csv`
-
-
-> [!IMPORTANT]
-> It would be advisable to first try out all the queries in the Athena console before putting them in the Jupyter notebook.
-> This way you can quickly test out if the queries work or not and get to a correct working version of the query quicker.
-
-## Problem 1: Get top 10 subreddits by count of comments (15 points)
-
-The response should contain two columns: `subreddit` and `comment_count`.
-
-Save the results in a file called `prob1_results.csv`. This needs to be committed to the repo.
-
-## Problem 2: Get 10 random rows from the comments table (15 points)
-
-This will help you understand the schema of the table which will be useful for other queries.
-
-Save the results in a file called `prob2_results.csv`. This needs to be committed to the repo.
-
-## Problem 3: Get number of comments per day per hour and sort the results in descending order of the count (20 points)
-
-The response should contain the following 3 columns: `comment_date`, `comment_hour` and `comment_count`.
-
-Save the results in a file called `prob3_results.csv`. This needs to be committed to the repo.
-
-## Problem 4: Find top 10 subreddits by the highest average score and sort the results in descending order of the average score (20 points)
-
-The response should contain the following columns: `subreddit` and `avg_score`.
-
-Save the results in a file called `prob4_results.csv`. This needs to be committed to the repo.
-
-## Problem 5: Top 5 most Controversial Comments in a r\datascience subreddit (20 points)
-
-The response should contain the following columns: `author`, `body`, `score`, `controversiality`.
-
-Save the results in a file called `prob5_results.csv`. This needs to be committed to the repo.
-
-## Problem 6: Extract and Transform AI/GenAI Comments for LLM Training - Advanced Pipeline (20 points)
-
-> [!NOTE]
-> **Learning Objectives:** This problem teaches advanced Athena concepts including pagination, data pipeline development, and ETL processes for AI/ML applications. The solution code is provided in `athena_to_jsonl_pipeline.py` for you to study and understand. Read `pipeline_concepts_explained.md` to understand the technical concepts demonstrated in this pipeline.
-
-> [!IMPORTANT]
-> **Requirements:** You must run the pipeline and submit the output file `prob6_training_data.jsonl` to receive credit. The goal is to understand how production data pipelines work, not to write the code from scratch.
-
-### Part A: SQL Query Development (5 points)
-
-Create a comprehensive SQL query to extract high-quality comments from AI/GenAI related subreddits using `REGEXP_LIKE` pattern matching. Your query should identify comments from the following categories:
-
-**AI/ML Category Examples:**
-- Core AI: `artificial`, `artificialintelligence`, `machinelearning`, `deeplearning`
-- GenAI Tools: `ChatGPT`, `openai`, `midjourney`, `stablediffusion`, `dalle`
-- Technical: `tensorflow`, `pytorch`, `huggingface`, `localllama`
-- Discussion: `singularity`, `agi`, `aiart`, `comfyui`
-
-**Quality Thresholds:**
-- Comment length: between 100 and 1000 characters
-- Score: >= 2 (well-received comments)
-- Exclude deleted/removed comments (body != '[deleted]' and body != '[removed]')
-
-**Required SQL Query Structure:**
-```sql
-SELECT
-    subreddit,
-    author,
-    body,
-    score,
-    created_utc,
-    controversiality
-FROM "AwsDataCatalog"."reddit"."a05"
-WHERE
-    -- Use REGEXP_LIKE to match AI-related subreddits
-    (
-        REGEXP_LIKE(LOWER(subreddit), 'artificial|ai|genai') OR
-        REGEXP_LIKE(LOWER(subreddit), 'chatgpt|openai|gpt') OR
-        -- Add more patterns here
-    )
-    AND LENGTH(body) BETWEEN 100 AND 1000  -- Quality threshold
-    AND score >= 2                         -- Well-received comments
-    AND body NOT IN ('[deleted]', '[removed]')
-ORDER BY score DESC;
-```
-
-Save the query results as `prob6_ai_comments.csv`.
-
-### Part B: Data Pipeline Execution (5 points)
-
-Write a Python script that performs the complete pipeline:
-1. **Execute the Athena query** from Part A programmatically using boto3
-2. **Download query results** from S3
-3. **Load the data** using Polars
-4. **Clean and preprocess** the comments (remove URLs, mentions, excessive whitespace)
-5. **Create instruction-response pairs** for LLM training
-6. **Export the data** in JSONL format
-
-**Required Script Features:**
-- Use boto3 to execute Athena queries and download results
-- Remove URLs and excessive whitespace from comments
-- Create contextual instructions based on subreddit
-- Add metadata (score, subreddit, timestamp)
-- Filter out any remaining low-quality content
-
-Save your Python script as `athena_to_jsonl_pipeline.py` and the output as `prob6_training_data.jsonl`.
-
-**Running the script:**
-```bash
-# Execute complete pipeline
-uv run python athena_to_jsonl_pipeline.py --net-id <your-net-id>
-
-# Or if you already have the CSV from Athena console
-uv run python athena_to_jsonl_pipeline.py --transform-only --input prob6_ai_comments.csv
-```
-
-**Expected JSONL Format:**
-```json
-{"instruction": "Write an insightful comment for r/ChatGPT discussing AI capabilities", "response": "...", "metadata": {"score": 10, "subreddit": "ChatGPT", "timestamp": 1685685609}}
-```
-
-## Grading Rubric
-
-### Problem Breakdown (100 points total)
-- **Problem 1:** Top 10 subreddits by comment count - 15 points
-- **Problem 2:** Random sample of 10 rows - 15 points
-- **Problem 3:** Comments per day per hour analysis - 20 points
-- **Problem 4:** Top 10 subreddits by average score - 20 points
-- **Problem 5:** Most controversial comments in r/datascience - 10 points
-- **Problem 6:** Extract and Transform AI/GenAI Comments Pipeline - 20 points
-  - Part A (Understanding SQL Query): 10 points
-  - Part B (Running Pipeline & Submission): 10 points
-
-### Grading Criteria for Problems 1-2 (15 points each):
-- **Correct SQL Query:** 10 points
-- **CSV Output:** 3 points
-- **Code Documentation:** 2 points
-
-### Grading Criteria for Problem 3-4 (20 points each):
-- **Correct SQL Query:** 10 points - Query produces the expected results with proper syntax
-- **Output Format:** 5 points - CSV file contains the correct columns and data format
-- **Code Documentation:** 3 points - Notebook includes clear explanations and comments
-- **Results Accuracy:** 2 points - Results are logical and properly formatted
-
-### Grading Criteria for Problem 5 (10 points):
-- **Correct SQL Query:** 6 points - Query produces the expected results with proper syntax
-- **Output Format:** 2 points - CSV file contains the correct columns and data format
-- **Code Documentation:** 2 points - Notebook includes clear explanations and comments
-
-### Grading Criteria for Problem 6 (20 points):
-- **Understanding the Pipeline:** 6 points - Read and understand the provided solution
-- **Running the Pipeline Successfully:** 8 points - Execute athena_to_jsonl_pipeline.py
-- **Submitting JSONL Output:** 6 points - Submit prob6_training_data.jsonl with valid content
-
-**Total: 100 points**
-
-## Submission Requirements
-
-### Required Files
-
-Ensure the following files are committed and pushed to your GitHub repository:
-
-1. **Notebooks:**
-   - `athena.ipynb` (completed with all outputs and documentation)
-
-2. **Output Files:**
-   - `prob1_results.csv`
-   - `prob2_results.csv`
-   - `prob3_results.csv`
-   - `prob4_results.csv`
-   - `prob5_results.csv`
-   - `prob6_ai_comments.csv`
-   - `prob6_training_data.jsonl`
-
-3. **Python Scripts:**
-   - `athena_to_jsonl_pipeline.py`
-
-### Submission Process
-
-1. Complete all 6 problems in the Athena notebook (Problems 1-5) and Python script (Problem 6)
-2. Generate all required CSV files from your query results
-3. Ensure all output files are properly formatted
-4. Commit all changes to your repository:
-   ```bash
-   git add .
-   git commit -m "Complete Amazon Athena Reddit comments analysis assignment"
-   git push origin main
-   ```
+## Project Overview
+
+This project focuses on leveraging Amazon Athena, a serverless query service, and AWS Glue Data Catalog to perform extensive analysis on a large dataset of Reddit comments. It demonstrates proficiency in cloud-based data querying, schema management, and extracting meaningful insights from social media data using standard SQL. The project also includes developing an advanced data pipeline for extracting and transforming AI/GenAI-related comments for potential LLM training.
+
+## Key Technologies & Skills Demonstrated
+
+*   **Cloud Data Analytics:** Amazon Athena, AWS Glue Data Catalog
+*   **Data Storage:** AWS S3 (for data lake architecture)
+*   **Query Language:** SQL (complex queries, `REGEXP_LIKE`, aggregations, window functions)
+*   **Data Processing:** ETL principles, Python (boto3, Polars for data manipulation)
+*   **Data Engineering:** Designing and implementing a data pipeline for LLM training data preparation.
+*   **Data Analysis:** Exploratory Data Analysis, temporal analysis, text pattern matching.
+*   **Reporting:** CSV report generation.
+*   **Cloud Infrastructure:** AWS EC2, AWS CLI, IAM permissions, Security Groups.
+
+## Project Architecture & Data Pipeline Setup
+
+The project leverages a robust cloud-native architecture for efficient data processing:
+
+*   **Data Source:** Reddit comments for June 2023 (Parquet format), stored in a shared Amazon S3 bucket (`s3://dsan6000-datasets/reddit/`).
+*   **Data Ingestion:** A script was developed to copy a subset of this data (~10 Parquet files) to a dedicated project-specific S3 bucket, optimizing for query performance and cost.
+*   **Schema Discovery & Cataloging:** AWS Glue Data Catalog was configured, and an AWS Glue Crawler was used to automatically discover the schema of the Parquet files in S3, creating a queryable table (`a05` within the `a05` database) for Athena.
+*   **Query Engine:** Amazon Athena served as the primary interactive query engine, allowing for ad-hoc and complex SQL queries directly on data in S3 without server management.
+
+**Key Configuration Steps:**
+*   Provisioned an AWS EC2 instance as a development environment.
+*   Configured AWS CLI and Python environment with necessary libraries (boto3, pandas, ipykernel).
+*   Established an AWS Glue Data Catalog and Crawler with appropriate IAM roles for S3 access and schema inference.
+*   Verified Athena setup by executing a `COUNT(*)` query on the cataloged Reddit data.
+
+## Core Data Analysis & Insights
+
+Utilizing Amazon Athena, I performed a series of analytical queries on the Reddit comments data to extract key insights:
+
+1.  **Top Active Subreddits:** Identified the top 10 subreddits with the highest comment counts, providing insight into community engagement. (Output: `prob1_results.csv`)
+2.  **Data Schema Exploration:** Sampled 10 random comment entries to understand the dataset's structure and available fields. (Output: `prob2_results.csv`)
+3.  **Temporal Comment Patterns:** Analyzed comment volume per day and hour to identify peak activity periods. (Output: `prob3_results.csv`)
+4.  **Highest Rated Subreddits:** Determined the top 10 subreddits based on the highest average comment score, indicating high-quality content or community appreciation. (Output: `prob4_results.csv`)
+5.  **Controversial Discussions in r/datascience:** Identified the top 5 most controversial comments within the 'datascience' subreddit, focusing on comments with high controversy scores. (Output: `prob5_results.csv`)
+
+Each analysis involved crafting optimized SQL queries within Athena and generating corresponding CSV reports.
+
+## Advanced Data Pipeline: AI/GenAI Comment Extraction for LLM Training
+
+A significant component of this project involved developing an advanced data pipeline to extract and transform high-quality, AI/GenAI-related Reddit comments, suitable for training Large Language Models (LLMs). This demonstrates an understanding of ETL processes for AI/ML applications.
+
+### Phase A: SQL-based Feature Engineering
+
+*   **Objective:** Developed a comprehensive SQL query to filter and extract relevant comments based on specific criteria.
+*   **Approach:** Used `REGEXP_LIKE` for advanced pattern matching on subreddit names (e.g., `artificial`, `chatgpt`, `openai`, `machinelearning`) and comment body.
+*   **Quality Filtering:** Applied strict quality thresholds including:
+    *   Comment length (100-1000 characters)
+    *   Minimum score (>= 2)
+    *   Exclusion of deleted/removed comments.
+*   **Output:** Generated `prob6_ai_comments.csv` containing the filtered AI/GenAI comments.
+
+### Phase B: Python-based ETL Pipeline Development
+
+*   **Objective:** Implemented a Python script (`athena_to_jsonl_pipeline.py`) to programmatically execute the Athena query, process the results, and transform them into a format suitable for LLM training.
+*   **Key Pipeline Steps:**
+    *   Programmatically executed Athena queries using `boto3`.
+    *   Downloaded query results from S3.
+    *   Leveraged `Polars` for efficient in-memory data loading and manipulation.
+    *   Performed data cleaning (e.g., removal of URLs, mentions, excessive whitespace).
+    *   Created contextual instruction-response pairs from comments.
+    *   Added relevant metadata (score, subreddit, timestamp).
+    *   Filtered out any remaining low-quality content.
+    *   Exported the final processed data into `JSONL` format, a standard for LLM training datasets.
+*   **Output:** Produced `prob6_training_data.jsonl`, a refined dataset ready for LLM fine-tuning.
+
+## Repository Structure
+
+├── README.md # Project overview and detailed description
+├── athena.ipynb # Jupyter notebook with all SQL queries and Python code for analysis
+├── athena_to_jsonl_pipeline.py # Python script for the advanced LLM training data pipeline
+├── pipeline_concepts_explained.md # (Optional: Explanation of pipeline concepts, if provided in original assignment)
+├── prob1_results.csv # Output: Top 10 subreddits by comment count
+├── prob2_results.csv # Output: 10 random comment rows
+├── prob3_results.csv # Output: Comments per day per hour
+├── prob4_results.csv # Output: Top 10 subreddits by average score
+├── prob5_results.csv # Output: Top 5 controversial comments in r/datascience
+├── prob6_ai_comments.csv # Output: Extracted AI/GenAI comments (intermediate)
+└── prob6_training_data.jsonl # Output: Final LLM training data in JSONL format
+
+
+## Setup & Usage
+
+To set up the AWS environment, ingest data, and execute the analysis:
+
+1.  **Prerequisites:**
+    *   AWS account with permissions for Athena, S3, Glue, and EC2.
+    *   AWS CLI configured.
+    *   Python 3.10+ with `uv` (or `pip`).
+    *   An EC2 instance (t3.medium or larger recommended) for development.
+
+2.  **Clone the Repository & Environment Setup:**
+    ```bash
+    git clone https://github.com/your-username/your-repo-name.git # Replace with your actual repo URL
+    cd your-repo-name
+    uv sync # Install Python dependencies
+    source .venv/bin/activate # Activate virtual environment
+    uv pip install ipykernel
+    python -m ipykernel install --user --name=athena-project # Install Jupyter kernel
+    ```
+    *Ensure you select the `athena-project` kernel in Jupyter/VSCode.*
+
+3.  **Data Ingestion to S3:**
+    *   Replace `<your-net-id>` with your AWS identifier in the script.
+    *   Run the following commands to create an S3 bucket and copy the Reddit data (refer to the original `README.md` for the full loop of copying 10 parquet files):
+    ```bash
+    NETID=<your-net-id>
+    BUCKET=athena-$NETID
+    aws s3 mb s3://$BUCKET
+    for i in {1..10}; do
+        echo "Processing file $i of 10..."
+        aws s3 cp s3://dsan6000-datasets/reddit/parquet/comments/yyyy=2023/mm=06/comments_RC_2023-06.zst_${i}.parquet ./comments_RC_2023-06.zst_${i}.parquet --request-payer
+        aws s3 cp ./comments_RC_2023-06.zst_${i}.parquet s3://$BUCKET/data/a05/
+        rm ./comments_RC_2023-06.zst_${i}.parquet
+    done
+    aws s3 ls s3://$BUCKET/data/a05/
+    ```
+
+4.  **AWS Glue Data Catalog & Athena Setup:**
+    *   In your AWS console, create an AWS Glue database named `a05`.
+    *   Configure an AWS Glue Crawler to crawl the S3 path `s3://$BUCKET/data/a05/`, ensuring it uses an appropriate IAM role (e.g., `LabRole`).
+    *   Run the crawler to automatically discover the schema and create the `a05` table in the `a05` database.
+    *   Configure Amazon Athena to use `s3://$BUCKET/athena-query-results/` for query output.
+    *   Verify setup with a simple `SELECT count(*) FROM "AwsDataCatalog"."a05"."a05";` query in Athena.
+
+5.  **Execute Analysis & Pipeline:**
+    *   Open `athena.ipynb` in Jupyter/VSCode, select the `athena-project` kernel, and run all cells to perform the core data analyses (Tasks 1-5).
+    *   For the advanced LLM training data pipeline (Task 6), execute the Python script:
+    ```bash
+    uv run python athena_to_jsonl_pipeline.py --net-id <your-net-id>
+    ```
+
+6.  **Cleanup:**
+    *   Remember to delete your S3 bucket and any EC2 instances/Glue crawlers to avoid incurring unnecessary AWS costs.
+
+## License
+
+MIT License
