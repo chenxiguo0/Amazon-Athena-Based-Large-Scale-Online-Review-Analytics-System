@@ -1,6 +1,6 @@
 # Amazon Athena-Based Large Scale Online Review Analytics System
 
-———— Large-Scale Reddit Comment Analysis with Amazon Athena & AWS Glue
+——— Large-Scale Reddit Comment Analysis with Amazon Athena & AWS Glue
 
 ## Project Overview
 
@@ -73,6 +73,7 @@ A significant component of this project involved developing an advanced data pip
 *   **Output:** Produced `prob6_training_data.jsonl`, a refined dataset ready for LLM fine-tuning.
 
 ## Repository Structure
+
 project-amazon-athena/
 ├── README.md # Project overview and detailed description
 ├── athena.ipynb # Jupyter notebook with all SQL queries and Python code for analysis
@@ -85,7 +86,6 @@ project-amazon-athena/
 ├── prob5_results.csv # Output: Top 5 controversial comments in r/datascience
 ├── prob6_ai_comments.csv # Output: Extracted AI/GenAI comments (intermediate)
 └── prob6_training_data.jsonl # Output: Final LLM training data in JSONL format
-
 
 ## Setup & Usage
 
