@@ -74,18 +74,20 @@ A significant component of this project involved developing an advanced data pip
 
 ## Repository Structure
 
+```
 project-amazon-athena/
-├── README.md # Project overview and detailed description
-├── athena.ipynb # Jupyter notebook with all SQL queries and Python code for analysis
-├── athena_to_jsonl_pipeline.py # Python script for the advanced LLM training data pipeline
+├── README.md                      # Project overview and detailed description
+├── athena.ipynb                   # Jupyter notebook with all SQL queries and Python code for analysis
+├── athena_to_jsonl_pipeline.py    # Python script for the advanced LLM training data pipeline
 ├── pipeline_concepts_explained.md # (Optional: Explanation of pipeline concepts, if provided in original assignment)
-├── prob1_results.csv # Output: Top 10 subreddits by comment count
-├── prob2_results.csv # Output: 10 random comment rows
-├── prob3_results.csv # Output: Comments per day per hour
-├── prob4_results.csv # Output: Top 10 subreddits by average score
-├── prob5_results.csv # Output: Top 5 controversial comments in r/datascience
-├── prob6_ai_comments.csv # Output: Extracted AI/GenAI comments (intermediate)
-└── prob6_training_data.jsonl # Output: Final LLM training data in JSONL format
+├── prob1_results.csv              # Output: Top 10 subreddits by comment count
+├── prob2_results.csv              # Output: 10 random comment rows
+├── prob3_results.csv              # Output: Comments per day per hour
+├── prob4_results.csv              # Output: Top 10 subreddits by average score
+├── prob5_results.csv              # Output: Top 5 controversial comments in r/datascience
+├── prob6_ai_comments.csv          # Output: Extracted AI/GenAI comments (intermediate)
+└── prob6_training_data.jsonl      # Output: Final LLM training data in JSONL format
+```
 
 ## Setup & Usage
 
